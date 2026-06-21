@@ -1,0 +1,22 @@
+license: MIT
+
+description: esp_ads1232 is a library for interfacing with the ADS1232 analog-to-digital converter using the ESP-IDF framework. It provides functions to initialize the device, read data, and configure settings.
+
+url: https://github.com/tuliocharles/esp_ads1232
+repository: https://github.com/tuliocharles/esp_ads1232.git
+
+maintainers:
+  - "Túlio Carvalho <tulio.cefetmg@gmail.com"
+
+dependencies:
+  idf: ">=5.0"
+
+files:
+  excludes:
+    - build/
+    - sdkconfig
+    - "**/dependencies.lock"
+    - .vscode/
+    - dist/
+    - .vscode/
+    - .clangd    
