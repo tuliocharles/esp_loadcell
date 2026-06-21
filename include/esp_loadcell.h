@@ -12,14 +12,15 @@ void func(void);
 
 // fazer um enum para ads1232 e hx711
 typedef enum {
-    ads1232 = 0,
-    hx711
+    ADS1232 = 0,
+    HX711
 }  loadcell_adc_type_t;
 
 typedef struct{
     gpio_num_t dout;
     gpio_num_t pd_sck;
     loadcell_adc_type_t type;
+    uint32_t gain;
     
 } esp_loadcell_config_t;
 

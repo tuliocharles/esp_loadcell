@@ -13,6 +13,8 @@ struct esp_loadcell_t
     SemaphoreHandle_t ready;
     gpio_num_t dout;
     gpio_num_t pd_sck;
+    loadcell_adc_type_t type;
+    uint32_t gain;
 };
 
 static void IRAM_ATTR wait_loadcell(void *arg)
@@ -32,6 +34,8 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
     // PASS configuration parameters to the handle
     esp_loadcell->dout = config->dout;
     esp_loadcell->pd_sck = config->pd_sck;
+    esp_loadcell->gain = config->gain;
+    esp_loadcell->type = config->type;
 
     gpio_config_t cfg_clk = {
         .mode = GPIO_MODE_OUTPUT,
@@ -82,22 +86,23 @@ uint32_t esp_loadcell_read(esp_loadcell_handle_t handle)
         for (size_t i = 0; i < 24; i++)
         {
             gpio_set_level(handle->pd_sck, 1);
-            esp_rom_delay_us(1); 
+            esp_rom_delay_us(1);
             data |= gpio_get_level(handle->dout) << (23 - i);
             gpio_set_level(handle->pd_sck, 0);
-            esp_rom_delay_us(1); 
-            
-            
+            esp_rom_delay_us(1);
         }
 
-        for (size_t i = 0; i <= 2; i++)
+        if (handle->type == HX711)
         {
-            gpio_set_level(handle->pd_sck, 1);
-            esp_rom_delay_us(1); 
-            gpio_set_level(handle->pd_sck, 0);
-            esp_rom_delay_us(1); 
-            
+            for (size_t i = 0; i <= handle->gain; i++)
+            {
+                gpio_set_level(handle->pd_sck, 1);
+                esp_rom_delay_us(1);
+                gpio_set_level(handle->pd_sck, 0);
+                esp_rom_delay_us(1);
+            }
         }
+
         if (data & 0x800000)
         {
             data |= 0xff000000;

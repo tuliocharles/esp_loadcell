@@ -11,7 +11,8 @@ void app_main(void)
     esp_loadcell_config_t esp_loadcell_config = {
         .dout = GPIO_NUM_19,
         .pd_sck = GPIO_NUM_18,
-    };
+        .type = HX711,
+        .gain = 2};
     
     init_esp_loadcell(&esp_loadcell_config, &esp_loadcell_handle);
 
@@ -22,6 +23,4 @@ void app_main(void)
         value = esp_loadcell_read (esp_loadcell_handle);
         //printf("Read value: %ld\n", value);
     }
-
-
 }
