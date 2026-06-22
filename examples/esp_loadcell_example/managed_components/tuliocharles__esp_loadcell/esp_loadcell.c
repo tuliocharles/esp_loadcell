@@ -20,7 +20,7 @@ struct esp_loadcell_t
 static void IRAM_ATTR wait_loadcell(void *arg)
 {
     esp_loadcell_handle_t handle = (esp_loadcell_handle_t)arg;
-    gpio_intr_disable(handle->dout);
+    // gpio_intr_disable(handle->dout);
     xSemaphoreGiveFromISR(handle->ready, NULL);
 }
 
@@ -72,7 +72,7 @@ err:
     return ret;
 }
 
-esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
+uint32_t esp_loadcell_read(esp_loadcell_handle_t handle)
 {
     // Implementation for reading from ESP-loadcell
     gpio_set_intr_type(handle->dout, GPIO_INTR_NEGEDGE);
@@ -107,17 +107,22 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
         {
             data |= 0xff000000;
         }
+        ESP_LOGI(tag, "Read data: %d", data);
 
-        *data_read = data;
-        ESP_LOGI(tag, "Read data: %d", *data_read);
-        return ESP_OK;
+        gpio_intr_disable(handle->dout);
+        return data;
     }
     else
     {
         // Handle the case where the semaphore could not be taken
         ESP_LOGE(tag, "Failed to read sensor");
-        return -ESP_FAIL; // or handle as appropriate
+        gpio_intr_disable(handle->dout);
+        return 0; // or handle as appropriate
     }
 
-    return ESP_FAIL;
+    return 0;
+}
+
+void func(void)
+{
 }

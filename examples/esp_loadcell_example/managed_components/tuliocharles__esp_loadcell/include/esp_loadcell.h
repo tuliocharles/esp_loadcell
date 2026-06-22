@@ -8,6 +8,9 @@
 
 typedef struct esp_loadcell_t *esp_loadcell_handle_t;
 
+void func(void);
+
+// fazer um enum para ads1232 e hx711
 typedef enum {
     ADS1232 = 0,
     HX711
@@ -23,6 +26,6 @@ typedef struct{
 
 esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle);
 
-esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read);
+uint32_t esp_loadcell_read(esp_loadcell_handle_t handle);
 
 #endif

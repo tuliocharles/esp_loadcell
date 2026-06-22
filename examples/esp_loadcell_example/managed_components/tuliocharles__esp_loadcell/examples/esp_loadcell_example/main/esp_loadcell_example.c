@@ -3,6 +3,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+
 void app_main(void)
 {
     esp_loadcell_handle_t esp_loadcell_handle;
@@ -12,14 +13,14 @@ void app_main(void)
         .pd_sck = GPIO_NUM_18,
         .type = HX711,
         .gain = 2};
-
+    
     init_esp_loadcell(&esp_loadcell_config, &esp_loadcell_handle);
 
-    int32_t value = 0;
-
-    esp_err_t r;
-    while (1)
+    uint32_t value = 0;
+    
+    while(1)
     {
-        r = esp_loadcell_read(esp_loadcell_handle, &value);
+        value = esp_loadcell_read (esp_loadcell_handle);
+        //printf("Read value: %ld\n", value);
     }
 }
