@@ -72,6 +72,8 @@ err:
     return ret;
 }
 
+static portMUX_TYPE s_loadcell_mux  = portMUX_INITIALIZER_UNLOCKED;
+
 esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
 {
     // Implementation for reading from ESP-loadcell
@@ -82,6 +84,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
     {
         gpio_intr_disable(handle->dout);
         // Semaphore taken successfully
+        portENTER_CRITICAL(&s_loadcell_mux );
         uint32_t data = 0;
         for (size_t i = 0; i < 24; i++)
         {
@@ -102,6 +105,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
                 esp_rom_delay_us(1);
             }
         }
+        portEXIT_CRITICAL(&s_loadcell_mux );
 
         if (data & 0x800000)
         {

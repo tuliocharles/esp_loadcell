@@ -6,3 +6,4 @@ sdkconfig.old
 dist/
 dependencies.lock
 .clangd
+managed_components/
