@@ -1,8 +1,0 @@
-build/
-sdkconfig
-sdkconfig.old
-.devcontainer/
-.vscode/
-dist/
-dependencies.lock
-.clangd
