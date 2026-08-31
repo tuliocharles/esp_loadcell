@@ -13,6 +13,13 @@ struct esp_loadcell_t
     SemaphoreHandle_t ready;
     gpio_num_t dout;
     gpio_num_t pd_sck;
+    gpio_num_t speed_io;
+    gpio_num_t gain0_io;
+    gpio_num_t gain1_io;
+    gpio_num_t pdwn_io;
+    gpio_num_t a0_io;
+
+    uint8_t speed; // 1 --> 80Hz, 0 --> 10Hz
     loadcell_adc_type_t type;
     uint32_t gain;
 };
@@ -22,6 +29,20 @@ static void IRAM_ATTR wait_loadcell(void *arg)
     esp_loadcell_handle_t handle = (esp_loadcell_handle_t)arg;
     gpio_intr_disable(handle->dout);
     xSemaphoreGiveFromISR(handle->ready, NULL);
+}
+
+// function to adjust speed of loadcell reading
+esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed)
+{
+    if (handle == NULL)
+    {
+        return ESP_ERR_INVALID_ARG;
+    }
+
+    handle->speed = speed;
+    gpio_set_level(handle->speed_io, handle->speed);
+
+    return ESP_OK;
 }
 
 esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle)
@@ -34,13 +55,47 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
     // PASS configuration parameters to the handle
     esp_loadcell->dout = config->dout;
     esp_loadcell->pd_sck = config->pd_sck;
-    esp_loadcell->gain = config->gain;
-    esp_loadcell->type = config->type;
 
-    gpio_config_t cfg_clk = {
-        .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = (1ULL << esp_loadcell->pd_sck)};
-    ESP_ERROR_CHECK(gpio_config(&cfg_clk));
+    if (config->type == ADS1232)
+    {
+        esp_loadcell->speed_io = config->speed_io;
+        esp_loadcell->gain0_io = config->gain0_io;
+        esp_loadcell->gain1_io = config->gain1_io;
+        esp_loadcell->pdwn_io = config->pdwn_io;
+        esp_loadcell->a0_io = config->a0_io;
+
+        esp_loadcell->gain = config->gain;
+        esp_loadcell->type = config->type;
+        esp_loadcell->speed = config->speed;
+
+        gpio_config_t cfg_clk = {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = ((1ULL << esp_loadcell->pd_sck) | (1ULL << esp_loadcell->speed_io) | (1ULL << esp_loadcell->a0_io) | (1ULL << esp_loadcell->pdwn_io) | (1ULL << esp_loadcell->gain1_io) | (1ULL << esp_loadcell->gain0_io))};
+        ESP_ERROR_CHECK(gpio_config(&cfg_clk));
+
+        gpio_set_level(esp_loadcell->speed_io, config->speed); // 1 --> 80Hz, 0 --> 10Hz
+        gpio_set_level(esp_loadcell->a0_io, 1);                // 1 canal2 e 0 canal1
+        gpio_set_level(esp_loadcell->pdwn_io, 1);
+        gpio_set_level(esp_loadcell->gain0_io, 1);
+        gpio_set_level(esp_loadcell->gain1_io, 1);
+
+    }
+    
+    else if (config->type == HX711)
+    {
+        // For HX711, these GPIOs are not used, set them to invalid values
+        esp_loadcell->speed_io = GPIO_NUM_NC; // Not connected
+        esp_loadcell->gain0_io = GPIO_NUM_NC; // Not connected
+        esp_loadcell->gain1_io = GPIO_NUM_NC; // Not connected
+        esp_loadcell->pdwn_io = GPIO_NUM_NC;  // Not connected
+        esp_loadcell->a0_io = GPIO_NUM_NC;    // Not connected
+
+        gpio_config_t cfg_clk = {
+            .mode = GPIO_MODE_OUTPUT,
+            .pin_bit_mask = ((1ULL << esp_loadcell->pd_sck))};
+        ESP_ERROR_CHECK(gpio_config(&cfg_clk));
+
+    }
 
     gpio_config_t cfg_dout = {
         .mode = GPIO_MODE_INPUT,
@@ -72,7 +127,7 @@ err:
     return ret;
 }
 
-static portMUX_TYPE s_loadcell_mux  = portMUX_INITIALIZER_UNLOCKED;
+static portMUX_TYPE s_loadcell_mux = portMUX_INITIALIZER_UNLOCKED;
 
 esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
 {
@@ -84,7 +139,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
     {
         gpio_intr_disable(handle->dout);
         // Semaphore taken successfully
-        portENTER_CRITICAL(&s_loadcell_mux );
+        portENTER_CRITICAL(&s_loadcell_mux);
         uint32_t data = 0;
         for (size_t i = 0; i < 24; i++)
         {
@@ -105,7 +160,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
                 esp_rom_delay_us(1);
             }
         }
-        portEXIT_CRITICAL(&s_loadcell_mux );
+        portEXIT_CRITICAL(&s_loadcell_mux);
 
         if (data & 0x800000)
         {
