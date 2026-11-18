@@ -52,46 +52,6 @@ void app_main(void)
 
     }
 
-    //esp_err_t r;
-/*    while (1)
-    {
-        r = esp_loadcell_read(esp_loadcell_handle, &value);
-        if(r == ESP_OK)
-        {
-            counter++;
-
-            if(counter >= 5)
-            {
-                counter = 0;
-
-                gain_index = (gain_index + 1) % 4;
-                uint32_t new_gain = gains_to_test[gain_index];
-                ESP_LOGI(TAG, "==> Teste: Alterando ganho para %lu", new_gain);
-                esp_loadcell_set_gain(esp_loadcell_handle, new_gain);
-
-                //current_channel = (current_channel == ESP_LOADCELL_CHANNEL_A) ? ESP_LOADCELL_CHANNEL_B : ESP_LOADCELL_CHANNEL_A;
-                //ESP_LOGI(TAG, "==> Teste: Alternando para %s", (current_channel == ESP_LOADCELL_CHANNEL_B) ? "Canal B" : "Canal A");
-                esp_loadcell_set_channel(esp_loadcell_handle, current_channel);
-
-                ESP_LOGI(TAG, "==> Teste: Entrando em modo Power-Down (standby)...");
-                esp_loadcell_power_down(esp_loadcell_handle, true);
-                
-                esp_err_t err_pd = esp_loadcell_read(esp_loadcell_handle, &value);
-                ESP_LOGW(TAG, "Status da leitura em Power-Down: %s (esperado ESP_ERR_INVALID_STATE)", esp_err_to_name(err_pd));
-
-                vTaskDelay(pdMS_TO_TICKS(1000));
-
-                ESP_LOGI(TAG, "==> Teste: Reativando o ADS1232 (Power-Up)...");
-                esp_loadcell_power_down(esp_loadcell_handle, false);
-                vTaskDelay(pdMS_TO_TICKS(100));
-            }
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Falha na leitura do sensor: %s", esp_err_to_name(r));
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(500));
-    }*/
+   
 
 }
