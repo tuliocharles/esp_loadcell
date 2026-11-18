@@ -78,9 +78,8 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
         gpio_set_level(esp_loadcell->pdwn_io, 1);
         gpio_set_level(esp_loadcell->gain0_io, 1);
         gpio_set_level(esp_loadcell->gain1_io, 1);
-
     }
-    
+
     else if (config->type == HX711)
     {
         // For HX711, these GPIOs are not used, set them to invalid values
@@ -94,7 +93,6 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
             .mode = GPIO_MODE_OUTPUT,
             .pin_bit_mask = ((1ULL << esp_loadcell->pd_sck))};
         ESP_ERROR_CHECK(gpio_config(&cfg_clk));
-
     }
 
     gpio_config_t cfg_dout = {
