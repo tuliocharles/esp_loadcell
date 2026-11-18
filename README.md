@@ -130,3 +130,4 @@ esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed);
 ## Exemplos
 
 ### Exemplo de Aplicação Básica com HX711: [esp_loadcell_example.c](https://github.com/christopherandev/esp_loadcell/blob/main/examples/esp_loadcell_example/main/esp_loadcell_example.c)
+# prototipos
