@@ -4,7 +4,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
-static const char *TAG = "main";
+const char *TAG = "ESP-Loadcell Example";
 
 void app_main(void)
 {
@@ -19,25 +19,41 @@ void app_main(void)
         .gain1_io = 22,  // GPIO_NUM_22
         .pdwn_io = 25,   // GPIO_NUM_25
         .a0_io = 23,     // GPIO_NUM_23
-        .speed = 0,      // 0 --> 10Hz, 1 --> 80Hz
-        .type = ADS1232,
-        .gain = 1        // Ganho inicial = 1
+        .type = ESP_LOADCELL_ADS1232, // ADS1232 or Hx711
+        .channel = ESP_LOADCELL_CHANNEL_A, // A or B
+        .speed = ESP_LOADCELL_SPEED_80HZ,      // 0 --> 10Hz, 1 --> 80Hz
+        .gain = ESP_LOADCELL_GAIN_2        // 1, 2, 64 ou 128
     };
 
-    ESP_ERROR_CHECK(init_esp_loadcell(&esp_loadcell_config, &esp_loadcell_handle));
+    ESP_ERROR_CHECK(esp_loadcell_init(&esp_loadcell_config, &esp_loadcell_handle));
 
-    esp_loadcell_set_speed(esp_loadcell_handle, 0);
+    esp_loadcell_set_channel(esp_loadcell_handle, ESP_LOADCELL_CHANNEL_B);
 
-    int32_t value = 0;
-    int counter = 0;
+    esp_loadcell_set_speed(esp_loadcell_handle, ESP_LOADCELL_SPEED_10HZ);
+
+    esp_loadcell_set_gain(esp_loadcell_handle, ESP_LOADCELL_GAIN_128);
+
     
-    uint32_t gains_to_test[] = {1, 2, 64, 128};
-    int gain_index = 0;
+    esp_loadcell_power_down(esp_loadcell_handle, false);
 
-    ads1232_channel_t current_channel = ADS1232_CHANNEL_A;
-
+    int32_t value;
     esp_err_t r;
     while (1)
+    {
+        r = esp_loadcell_read(esp_loadcell_handle, &value);
+        // next text must be in english
+        if(r == ESP_OK)
+        {
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Failed to read sensor: %s", esp_err_to_name(r));
+        }
+
+    }
+
+    //esp_err_t r;
+/*    while (1)
     {
         r = esp_loadcell_read(esp_loadcell_handle, &value);
         if(r == ESP_OK)
@@ -53,8 +69,8 @@ void app_main(void)
                 ESP_LOGI(TAG, "==> Teste: Alterando ganho para %lu", new_gain);
                 esp_loadcell_set_gain(esp_loadcell_handle, new_gain);
 
-                current_channel = (current_channel == ADS1232_CHANNEL_A) ? ADS1232_CHANNEL_B : ADS1232_CHANNEL_A;
-                ESP_LOGI(TAG, "==> Teste: Alternando para %s", (current_channel == ADS1232_CHANNEL_B) ? "Canal B" : "Canal A");
+                //current_channel = (current_channel == ESP_LOADCELL_CHANNEL_A) ? ESP_LOADCELL_CHANNEL_B : ESP_LOADCELL_CHANNEL_A;
+                //ESP_LOGI(TAG, "==> Teste: Alternando para %s", (current_channel == ESP_LOADCELL_CHANNEL_B) ? "Canal B" : "Canal A");
                 esp_loadcell_set_channel(esp_loadcell_handle, current_channel);
 
                 ESP_LOGI(TAG, "==> Teste: Entrando em modo Power-Down (standby)...");
@@ -76,5 +92,6 @@ void app_main(void)
         }
 
         vTaskDelay(pdMS_TO_TICKS(500));
-    }
+    }*/
+
 }

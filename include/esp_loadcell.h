@@ -10,23 +10,29 @@ typedef struct esp_loadcell_t *esp_loadcell_handle_t;
 
 typedef enum 
 {
-    ADS1232 = 0,
-    HX711
-} loadcell_adc_type_t;
+    ESP_LOADCELL_ADS1232 = 0,
+    ESP_LOADCELL_HX711
+} esp_loadcell_adc_type_t;
 
 typedef enum 
 {
-    ADS1232_GAIN_1,
-    ADS1232_GAIN_2,
-    ADS1232_GAIN_64,
-    ADS1232_GAIN_128
-} ads1232_gain_t;
+    ESP_LOADCELL_GAIN_1,
+    ESP_LOADCELL_GAIN_2,
+    ESP_LOADCELL_GAIN_64,
+    ESP_LOADCELL_GAIN_128
+} esp_loadcell_gain_t;
 
 typedef enum 
 {
-    ADS1232_CHANNEL_A = 0, 
-    ADS1232_CHANNEL_B = 1
-} ads1232_channel_t;
+    ESP_LOADCELL_CHANNEL_A = 0, 
+    ESP_LOADCELL_CHANNEL_B = 1
+} esp_loadcell_channel_t;
+
+typedef enum 
+{
+    ESP_LOADCELL_SPEED_10HZ = 0,
+    ESP_LOADCELL_SPEED_80HZ = 1
+} esp_loadcell_speed_t;
 
 typedef struct {
     gpio_num_t dout;
@@ -36,10 +42,10 @@ typedef struct {
     gpio_num_t gain1_io;
     gpio_num_t pdwn_io;
     gpio_num_t a0_io;
-
-    uint8_t speed;       // 1 --> 80Hz, 0 --> 10Hz
-    loadcell_adc_type_t type;
-    uint32_t gain;
+    esp_loadcell_adc_type_t type;
+    esp_loadcell_channel_t channel;  // 0 --> Channel A, 1 --> Channel B
+    esp_loadcell_speed_t speed;       // 1 --> 80Hz, 0 --> 10Hz
+    esp_loadcell_gain_t gain;
 } esp_loadcell_config_t;
 
 /**
@@ -55,7 +61,7 @@ typedef struct {
  *      - ESP_OK: Driver initialized successfully.
  *      - ESP_ERR_INVALID_ARG: If config or handle pointer is NULL.
  */
-esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle);
+esp_err_t esp_loadcell_init(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle);
 
 /**
  * @brief Reads a 24-bit signed raw conversion value from the load cell ADC.
@@ -87,7 +93,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read);
  *      - ESP_OK: Speed updated successfully.
  *      - ESP_ERR_INVALID_ARG: If handle is NULL.
  */
-esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed);
+esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle,  esp_loadcell_speed_t speed);
 
 /**
  * @brief Dynamically configures the programmable gain amplifier (PGA) of the ADS1232.
@@ -102,7 +108,7 @@ esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed);
  *      - ESP_ERR_INVALID_ARG: If handle is NULL or gain value is invalid.
  *      - ESP_ERR_NOT_SUPPORTED: If the initialized ADC type is not ADS1232.
  */
-esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gain);
+esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, esp_loadcell_gain_t gain);
 
 /**
  * @brief Selects the active differential input channel on the ADS1232.
@@ -110,14 +116,14 @@ esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gai
  * Drives the A0 GPIO pin (0 for Channel A, 1 for Channel B).
  * 
  * @param[in] handle  Load cell driver handle.
- * @param[in] channel Input channel selection (ADS1232_CHANNEL_A or ADS1232_CHANNEL_B).
+ * @param[in] channel Input channel selection (ESP_LOADCELL_CHANNEL_A or ESP_LOADCELL_CHANNEL_B).
  * 
  * @return
  *      - ESP_OK: Input channel selected successfully.
  *      - ESP_ERR_INVALID_ARG: If handle is NULL.
- *      - ESP_ERR_NOT_SUPPORTED: If the initialized ADC type is not ADS1232.
+ *      - ESP_ERR_NOT_SUPPORTED: If the initialized ADC type is not ESP_LOADCELL_ADS1232.
  */
-esp_err_t esp_loadcell_set_channel(esp_loadcell_handle_t handle, ads1232_channel_t channel);
+esp_err_t esp_loadcell_set_channel(esp_loadcell_handle_t handle, esp_loadcell_channel_t channel);
 
 /**
  * @brief Controls the Power-Down / Reset state of the ADS1232.

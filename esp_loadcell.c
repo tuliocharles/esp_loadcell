@@ -18,12 +18,11 @@ struct esp_loadcell_t
     gpio_num_t          gain1_io;
     gpio_num_t          pdwn_io;
     gpio_num_t          a0_io;
-
-    uint8_t             speed; // 1 --> 80Hz, 0 --> 10Hz
-    loadcell_adc_type_t type;
-    uint32_t            gain;
-    ads1232_channel_t   channel;
-    bool                is_power_down;
+    esp_loadcell_adc_type_t type;
+    esp_loadcell_channel_t  channel;
+    esp_loadcell_speed_t speed; // 1 --> 80Hz, 0 --> 10Hz
+    esp_loadcell_gain_t  gain;
+    bool                 is_power_down;
 };
 
 static void IRAM_ATTR wait_loadcell(void *arg)
@@ -33,30 +32,30 @@ static void IRAM_ATTR wait_loadcell(void *arg)
     xSemaphoreGiveFromISR(handle->ready, NULL);
 }
 
-esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, uint8_t speed)
+esp_err_t esp_loadcell_set_speed(esp_loadcell_handle_t handle, esp_loadcell_speed_t speed)
 {
     if (handle == NULL)
     {
         return ESP_ERR_INVALID_ARG;
     }
-
-    handle->speed = speed;
-    if (handle->type == ADS1232 && handle->speed_io != GPIO_NUM_NC)
+    
+    if (handle->type ==  ESP_LOADCELL_ADS1232 && handle->speed_io != GPIO_NUM_NC)
     {
+        handle->speed = speed;
         gpio_set_level(handle->speed_io, handle->speed);
     }
 
     return ESP_OK;
 }
 
-esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gain)
+esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, esp_loadcell_gain_t gain)
 {
     if (handle == NULL)
     {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (handle->type != ADS1232)
+    if (handle->type != ESP_LOADCELL_ADS1232)
     {
         return ESP_ERR_NOT_SUPPORTED;
     }
@@ -66,29 +65,29 @@ esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gai
 
     switch(gain)
     {
-        case ADS1232_GAIN_1:
+        case ESP_LOADCELL_GAIN_1:
             g1_level = 0;
             g0_level = 0;
-            handle->gain = 1;
+            
             break;
-        case ADS1232_GAIN_2:
+        case ESP_LOADCELL_GAIN_2:
             g1_level = 0;
             g0_level = 1;
-            handle->gain = 2;
+            
             break;
-        case ADS1232_GAIN_64:
+        case ESP_LOADCELL_GAIN_64:
             g1_level = 1;
             g0_level = 0;
-            handle->gain = 64;
             break;
-        case ADS1232_GAIN_128:
+        case ESP_LOADCELL_GAIN_128:
             g1_level = 1;
             g0_level = 1;
-            handle->gain = 128;
             break;
         default:
             return ESP_ERR_INVALID_ARG;
     }
+
+    handle->gain = gain;
 
     gpio_set_level(handle->gain0_io, g0_level);
     gpio_set_level(handle->gain1_io, g1_level);
@@ -96,40 +95,40 @@ esp_err_t esp_loadcell_set_gain(esp_loadcell_handle_t handle, ads1232_gain_t gai
     return ESP_OK;
 }
 
-esp_err_t esp_loadcell_set_channel(esp_loadcell_handle_t handle, ads1232_channel_t channel)
+esp_err_t esp_loadcell_set_channel(esp_loadcell_handle_t handle, esp_loadcell_channel_t channel)
 {
     if (handle == NULL)
     {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (handle->type != ADS1232)
+    if (handle->type != ESP_LOADCELL_ADS1232)
     {
         return ESP_ERR_NOT_SUPPORTED;
     }
 
     handle->channel = channel;
-    int level = (channel == ADS1232_CHANNEL_B) ? 1 : 0;
+    int level = (channel == ESP_LOADCELL_CHANNEL_B) ? 1 : 0;
     gpio_set_level(handle->a0_io, level);
 
-    ESP_LOGI(tag, "ADS1232 canal selecionado: %s (A0=%d)", (channel == ADS1232_CHANNEL_B) ? "CH B" : "CH A", level);
+    ESP_LOGI(tag, "ADS1232 canal selecionado: %s (A0=%d)", (channel == ESP_LOADCELL_CHANNEL_B) ? "CH B" : "CH A", level);
     return ESP_OK;
 }
 
-esp_err_t esp_loadcell_power_down(esp_loadcell_handle_t handle, bool enable)
+esp_err_t esp_loadcell_power_down(esp_loadcell_handle_t handle, bool is_enable)
 {
     if (handle == NULL)
     {
         return ESP_ERR_INVALID_ARG;
     }
 
-    if (handle->type != ADS1232)
+    if (handle->type != ESP_LOADCELL_ADS1232)
     {
         return ESP_ERR_NOT_SUPPORTED;
     }
 
-    handle->is_power_down = enable;
-    if (enable)
+    handle->is_power_down = is_enable;
+    if (handle->is_power_down)
     {
         // PDWN em nível lógico baixo desliga os circuitos internos do ADS1232
         gpio_set_level(handle->pdwn_io, 0);
@@ -145,7 +144,7 @@ esp_err_t esp_loadcell_power_down(esp_loadcell_handle_t handle, bool enable)
     return ESP_OK;
 }
 
-esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle)
+esp_err_t esp_loadcell_init(esp_loadcell_config_t *config, esp_loadcell_handle_t *handle)
 {
     esp_err_t ret = ESP_OK;
     esp_loadcell_t *esp_loadcell = NULL;
@@ -155,7 +154,7 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
     esp_loadcell->dout = config->dout;
     esp_loadcell->pd_sck = config->pd_sck;
 
-    if (config->type == ADS1232)
+    if (config->type == ESP_LOADCELL_ADS1232)
     {
         esp_loadcell->speed_io = config->speed_io;
         esp_loadcell->gain0_io = config->gain0_io;
@@ -163,11 +162,15 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
         esp_loadcell->pdwn_io = config->pdwn_io;
         esp_loadcell->a0_io = config->a0_io;
 
-        esp_loadcell->gain = config->gain;
         esp_loadcell->type = config->type;
-        esp_loadcell->speed = config->speed;
-        esp_loadcell->channel = ADS1232_CHANNEL_A;
-        esp_loadcell->is_power_down = false;
+        
+        esp_loadcell_set_channel(esp_loadcell, config->channel);
+
+        esp_loadcell_set_speed(esp_loadcell, config->speed);
+
+        esp_loadcell_set_gain(esp_loadcell, config->gain);
+        
+        esp_loadcell_power_down(esp_loadcell, false);
 
         gpio_config_t cfg_clk = {
             .mode = GPIO_MODE_OUTPUT,
@@ -180,19 +183,19 @@ esp_err_t init_esp_loadcell(esp_loadcell_config_t *config, esp_loadcell_handle_t
         ESP_ERROR_CHECK(gpio_config(&cfg_clk));
 
         gpio_set_level(esp_loadcell->speed_io, config->speed);
-        gpio_set_level(esp_loadcell->a0_io, 0);                // Canal A por padrão (A0 = 0)
+        gpio_set_level(esp_loadcell->a0_io, esp_loadcell->channel);                // Canal A por padrão (A0 = 0)
         gpio_set_level(esp_loadcell->pdwn_io, 1);              // Ativado por padrão (PDWN = 1)
 
-        int g0_init = 0, g1_init = 0;
+    /*    int g0_init = 0, g1_init = 0;
         if (config->gain == 2)          { g1_init = 0; g0_init = 1; }
         else if (config->gain == 64)    { g1_init = 1; g0_init = 0; }
         else if (config->gain == 128)   { g1_init = 1; g0_init = 1; }
         else                            { g1_init = 0; g0_init = 0; }
 
         gpio_set_level(esp_loadcell->gain0_io, g0_init);
-        gpio_set_level(esp_loadcell->gain1_io, g1_init);
+        gpio_set_level(esp_loadcell->gain1_io, g1_init);*/
     }
-    else if (config->type == HX711)
+    else if (config->type == ESP_LOADCELL_HX711)
     {
         esp_loadcell->speed_io = GPIO_NUM_NC;
         esp_loadcell->gain0_io = GPIO_NUM_NC;
@@ -244,11 +247,11 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
     }
 
     // Impede a leitura se o componente estiver em modo Power-Down
-    if (handle->type == ADS1232 && handle->is_power_down)
+  /*  if (handle->type == ESP_LOADCELL_ADS1232 && handle->is_power_down)
     {
         ESP_LOGW(tag, "Tentativa de leitura com o ADS1232 em Power-Down");
         return ESP_ERR_INVALID_STATE;
-    }
+    }*/
 
     gpio_set_intr_type(handle->dout, GPIO_INTR_NEGEDGE);
     gpio_intr_enable(handle->dout);
@@ -267,7 +270,7 @@ esp_err_t esp_loadcell_read(esp_loadcell_handle_t handle, int32_t *data_read)
             esp_rom_delay_us(1);
         }
 
-        if (handle->type == HX711)
+        if (handle->type == ESP_LOADCELL_HX711)
         {
             for (size_t i = 0; i <= handle->gain; i++)
             {
